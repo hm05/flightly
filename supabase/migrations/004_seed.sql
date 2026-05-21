@@ -115,7 +115,7 @@ begin
 
     -- ── First class: rows 1-2, columns A & B ──────────────
     for v_row in 1..2 loop
-      foreach v_col in array['A','B'] loop
+      foreach v_col in array ARRAY['A','B'] loop
         v_seat_no   := v_row::text || v_col;
         v_class     := 'first';
         v_extra_fee := 3000;
@@ -127,7 +127,7 @@ begin
 
     -- ── Business class: rows 3-6, columns A & B ───────────
     for v_row in 3..6 loop
-      foreach v_col in array['A','B'] loop
+      foreach v_col in array ARRAY['A','B'] loop
         v_seat_no   := v_row::text || v_col;
         v_class     := 'business';
         v_extra_fee := 1500;
@@ -142,7 +142,7 @@ begin
     -- (Note: spec requested 18 economy seats / 30 total; the accurate layout
     --  for 4+8+18 = 30 is rows 7-12 col A-C = 18. Rows 7-12 used below.)
     for v_row in 7..12 loop
-      foreach v_col in array['A','B','C'] loop
+      foreach v_col in array ARRAY['A','B','C'] loop
         v_seat_no   := v_row::text || v_col;
         v_class     := 'economy';
         v_extra_fee := 0;
