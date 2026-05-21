@@ -1,0 +1,17 @@
+#!/bin/sh
+commit_msg=$(cat "$1")
+pattern='^\[(feat|fix|refactor|docs|style|test|chore|perf|revert|merge|cleanup|hotfix|security)\] .+'
+
+if ! echo "$commit_msg" | grep -Eq "$pattern"; then
+  echo ""
+  echo "❌ Invalid commit message format."
+  echo ""
+  echo "   Your message: $commit_msg"
+  echo ""
+  echo "   Required format: [type] your message here"
+  echo "   Example: [feat] add flight search page"
+  echo ""
+  echo "   Valid types: feat, fix, refactor, docs, style, test, chore, perf, revert, merge, cleanup, hotfix, security"
+  echo ""
+  exit 1
+fi
