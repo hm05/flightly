@@ -36,10 +36,35 @@ interface ReportErrorOptions {
  */
 export function reportError(
   error: unknown,
-  { tag, extra }: ReportErrorOptions
+  { tag, extra }: ReportErrorOptions,
 ): void {
-  Sentry.captureException(error, {
+  let exception: Error
+  let supabaseContext: Record<string, unknown> = {}
+
+  if (error instanceof Error) {
+    exception = error
+  } else if (
+    error !== null &&
+    typeof error === 'object' &&
+    'message' in error &&
+    typeof (error as Record<string, unknown>).message === 'string'
+  ) {
+    // Supabase PostgrestError / AuthError: { message, code, details, hint }
+    // Build a real Error so Sentry titles are readable instead of showing
+    // "Object captured as exception with keys: code, details, hint, message"
+    const raw = error as Record<string, unknown>
+    exception = new Error(raw.message as string)
+    exception.name =
+      typeof raw.code === 'string' ? `SupabaseError[${raw.code}]` : 'SupabaseError'
+    supabaseContext = raw
+  } else {
+    exception = new Error(
+      typeof error === 'string' ? error : JSON.stringify(error),
+    )
+  }
+
+  Sentry.captureException(exception, {
     tags: { flow: tag },
-    extra,
+    extra: { ...supabaseContext, ...extra },
   })
 }
