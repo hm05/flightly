@@ -2,29 +2,10 @@ import Link from 'next/link'
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen relative">
-      {/* NAVBAR */}
-      <header className="absolute top-0 w-full z-50">
-        <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="font-bold text-xl tracking-tight text-white flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-indigo-400">
-              <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
-            </svg>
-            Flightly
-          </div>
-          <nav className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-medium text-indigo-100 hover:text-white transition-colors">
-              Sign in
-            </Link>
-            <Link href="/signup" className="text-sm font-medium bg-white/10 border border-white/20 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-all">
-              Create account
-            </Link>
-          </nav>
-        </div>
-      </header>
-
+    <div className="flex flex-col min-h-screen">
       {/* SECTION 1 — Hero */}
-      <section className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white py-24 md:py-32 px-4 text-center flex flex-col items-center justify-center min-h-[70vh]">
+      <section className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white py-24 md:py-32 px-4 text-center flex flex-col items-center justify-center min-h-[60vh]">
+
         <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight max-w-4xl mb-6">
           Book flights. Pick your seat. Travel light.
         </h1>
