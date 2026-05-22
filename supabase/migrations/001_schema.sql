@@ -1,12 +1,9 @@
 -- =============================================================
 -- Migration 001: Core Schema
 -- Creates the five tables that power the Flightly booking engine.
--- All PKs use UUIDs generated server-side via gen_random_uuid().
+-- All PKs use UUIDs generated server-side via gen_random_uuid()
+-- (built into PostgreSQL 13+ — no extension required).
 -- =============================================================
-
--- Enable the pgcrypto extension so gen_random_uuid() is available
--- (already enabled on Supabase by default, but declared here for clarity)
-create extension if not exists "pgcrypto";
 
 -- -------------------------------------------------------------
 -- Table: flights
@@ -54,7 +51,8 @@ create table if not exists public.bookings (
   user_id     uuid        not null references auth.users (id) on delete restrict,
   flight_id   uuid        not null references public.flights (id) on delete restrict,
   seat_id     uuid        not null references public.seats (id) on delete restrict,
-  status      text        not null default 'confirmed',      -- confirmed | cancelled
+  status      text        not null default 'confirmed'
+                          check (status in ('confirmed', 'rescheduled', 'cancelled')),
   booked_at   timestamptz not null default now(),
   total_price numeric     not null check (total_price >= 0),
   pnr_code    text        not null unique                    -- e.g. "ABCD1234"
