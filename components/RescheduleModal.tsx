@@ -109,55 +109,42 @@ function ModalContent({
   async function handleConfirm() {
     if (!selectedFlight) return
 
-    // Snapshot fee at confirm time so it can't change mid-function
-    const confirmedFee = Math.max(
-      0,
-      selectedFlight.base_price - booking.base_price,
-    )
-
-    const msg =
-      confirmedFee > 0
-        ? `Reschedule to ${selectedFlight.flight_no}? ${priceFormatter.format(confirmedFee)} will be charged for the price difference.`
-        : `Reschedule to ${selectedFlight.flight_no}? No extra charge.`
-
-    const confirmed = window.confirm(msg)
-    if (!confirmed) return
-
     setSubmitting(true)
     setError(null)
 
     const supabase = createClient()
 
-    // a. Insert reschedule record
-    const { error: insertError } = await supabase.from('reschedules').insert({
-      booking_id: booking.id,
-      old_flight_id: booking.flight_id,
-      new_flight_id: selectedFlight.id,
-      fee_charged: confirmedFee,
-    })
+    // Single atomic RPC — inserts into reschedules AND updates bookings
+    // in one PostgreSQL transaction. If either step fails, both roll back,
+    // preventing orphaned reschedule records.
+    const { data: feeCharged, error: rpcError } = await supabase.rpc(
+      'reschedule_booking',
+      {
+        p_booking_id: booking.id,
+        p_new_flight_id: selectedFlight.id,
+      },
+    )
 
-    if (insertError) {
-      setError('Failed to reschedule. Please try again.')
-      reportError(insertError, { tag: 'reschedule-insert' })
+    if (rpcError) {
+      const errMsg = rpcError.message ?? ''
+      if (errMsg.includes('TOO_LATE_TO_RESCHEDULE')) {
+        setError('Rescheduling must be done at least 2 hours before departure.')
+      } else if (errMsg.includes('SAME_FLIGHT')) {
+        setError('Please select a different flight.')
+      } else if (errMsg.includes('ROUTE_MISMATCH')) {
+        setError('The selected flight operates on a different route.')
+      } else if (errMsg.includes('NEW_FLIGHT_NOT_FOUND')) {
+        setError('The selected flight is no longer available.')
+      } else {
+        reportError(rpcError, { tag: 'reschedule-booking-rpc' })
+        setError('Reschedule failed. Please try again.')
+      }
       setSubmitting(false)
       return
     }
 
-    // b. Update booking
-    const { error: updateError } = await supabase
-      .from('bookings')
-      .update({
-        flight_id: selectedFlight.id,
-        status: 'rescheduled',
-      })
-      .eq('id', booking.id)
-
-    if (updateError) {
-      setError('Booking record could not be updated. Please contact support.')
-      reportError(updateError, { tag: 'reschedule-update-booking' })
-      setSubmitting(false)
-      return
-    }
+    // feeCharged is the numeric returned by the RPC.
+    void feeCharged
 
     setSubmitting(false)
     onRescheduled(selectedFlight.flight_no)
