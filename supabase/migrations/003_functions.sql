@@ -93,13 +93,14 @@ begin
     and  s.id = p_seat_id;
 
   -- Step 4: Generate a unique 8-character uppercase PNR code.
-  -- We loop until we find one that doesn't already exist (astronomically rare
-  -- but good practice for a unique constraint).
+  -- Uses only built-in PostgreSQL functions — no pgcrypto extension needed.
+  -- md5() returns 32 lowercase hex chars (0-9, a-f); we take the first 8
+  -- and uppercase them. clock_timestamp() adds sub-millisecond entropy so
+  -- concurrent calls within the same transaction cannot collide.
   loop
-    -- Pick 6 random bytes → base64 → strip non-alphanumeric → first 8 chars → uppercase
     v_pnr_code := upper(
                     substring(
-                      replace(replace(encode(gen_random_bytes(6), 'base64'), '+', ''), '/', ''),
+                      md5(random()::text || clock_timestamp()::text),
                       1, 8
                     )
                   );
@@ -254,3 +255,122 @@ $$;
 
 comment on function public.cancel_booking is
   'Cancels a confirmed booking if called at least 2 hours before departure. Ownership verified via auth.uid() — no client-supplied user ID accepted. Releases the seat back to available inventory.';
+
+
+-- =============================================================
+-- RPC 3: reschedule_booking
+-- Atomically moves a confirmed booking to a different flight on
+-- the same route.
+--
+-- Security notes:
+--   • Identity sourced exclusively from auth.uid() — no client-
+--     supplied user ID can slip through the SECURITY DEFINER boundary.
+--   • Route (origin/destination) is validated server-side against
+--     the existing booking — clients cannot switch routes.
+--   • The 2-hour pre-departure cutoff is enforced on the ORIGINAL
+--     flight so users cannot escape the window by rescheduling.
+--
+-- Steps:
+--   0. Reject unauthenticated callers.
+--   1. Lock and verify booking ownership + active status.
+--   2. Enforce 2-hour cutoff on the original flight.
+--   3. Reject same-flight reschedules.
+--   4. Fetch and validate the replacement flight (active, same route).
+--   5. Calculate fee = max(0, new_price − old_price).
+--   6. Insert reschedule audit record.     ─┐ both in the same
+--   7. Update booking flight_id + status.   ─┘ implicit transaction
+--   8. Return the fee charged.
+-- =============================================================
+create or replace function public.reschedule_booking(
+  p_booking_id    uuid,
+  p_new_flight_id uuid
+)
+returns numeric
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_old_flight_id   uuid;
+  v_old_base_price  numeric;
+  v_new_base_price  numeric;
+  v_departs_at      timestamptz;
+  v_old_origin      text;
+  v_old_destination text;
+  v_new_origin      text;
+  v_new_destination text;
+  v_fee             numeric;
+begin
+  -- Step 0: Reject unauthenticated callers.
+  if auth.uid() is null then
+    raise exception 'UNAUTHENTICATED'
+      using hint = 'You must be signed in to reschedule a booking.';
+  end if;
+
+  -- Step 1: Lock the booking row and verify ownership + status.
+  -- FOR UPDATE prevents concurrent reschedules on the same booking.
+  select b.flight_id, f.base_price, f.departs_at, f.origin, f.destination
+  into   v_old_flight_id, v_old_base_price, v_departs_at, v_old_origin, v_old_destination
+  from   public.bookings b
+  join   public.flights  f on f.id = b.flight_id
+  where  b.id      = p_booking_id
+    and  b.user_id = auth.uid()
+    and  b.status  != 'cancelled'
+  for update of b;
+
+  if not found then
+    raise exception 'BOOKING_NOT_FOUND'
+      using hint = 'Booking does not exist, does not belong to you, or is already cancelled.';
+  end if;
+
+  -- Step 2: Enforce the 2-hour pre-departure cutoff on the ORIGINAL flight.
+  if now() > v_departs_at - interval '2 hours' then
+    raise exception 'TOO_LATE_TO_RESCHEDULE'
+      using hint = 'Rescheduling must be done at least 2 hours before the original departure.';
+  end if;
+
+  -- Step 3: Cannot reschedule to the same flight.
+  if p_new_flight_id = v_old_flight_id then
+    raise exception 'SAME_FLIGHT'
+      using hint = 'The new flight must be different from the current flight.';
+  end if;
+
+  -- Step 4: Fetch the replacement flight and validate it is active + same route.
+  select base_price, origin, destination
+  into   v_new_base_price, v_new_origin, v_new_destination
+  from   public.flights
+  where  id        = p_new_flight_id
+    and  status    != 'cancelled'
+    and  departs_at > now();
+
+  if not found then
+    raise exception 'NEW_FLIGHT_NOT_FOUND'
+      using hint = 'The selected flight does not exist, is cancelled, or has already departed.';
+  end if;
+
+  -- Step 5: Validate same route (origin + destination must match).
+  if v_new_origin != v_old_origin or v_new_destination != v_old_destination then
+    raise exception 'ROUTE_MISMATCH'
+      using hint = 'The new flight must operate on the same origin-destination route.';
+  end if;
+
+  -- Step 6: Fee = price difference, floored at 0 (no refunds on downgrades).
+  v_fee := greatest(0, v_new_base_price - v_old_base_price);
+
+  -- Step 7 (ATOMIC): Insert audit record + update booking in one transaction.
+  insert into public.reschedules (booking_id, old_flight_id, new_flight_id, fee_charged)
+  values (p_booking_id, v_old_flight_id, p_new_flight_id, v_fee);
+
+  update public.bookings
+  set    flight_id = p_new_flight_id,
+         status    = 'rescheduled'
+  where  id = p_booking_id;
+
+  -- Step 8: Return fee so the UI can surface the charge to the user.
+  return v_fee;
+end;
+$$;
+
+comment on function public.reschedule_booking is
+  'Atomically moves a booking to a new flight on the same route. Ownership via auth.uid(). Enforces 2-hour cutoff, same-route validation, and inserts an audit record — all in one transaction. Returns the fee charged.';
+
