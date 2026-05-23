@@ -228,7 +228,7 @@ begin
   join   public.seats    s on s.id = b.seat_id
   where  b.id      = p_booking_id
     and  b.user_id = auth.uid()           -- ownership verified against the JWT
-    and  b.status  = 'confirmed';         -- cannot cancel an already-cancelled booking
+    and  b.status  != 'cancelled';        -- cannot cancel an already-cancelled booking
 
   if not found then
     raise exception 'BOOKING_NOT_FOUND'
