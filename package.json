@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "generate-icons": "node scripts/generate-icons.js",
     "prepare": "husky"
   },
   "dependencies": {
