@@ -41,10 +41,17 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const isProtected =
     pathname.startsWith('/bookings') || pathname.startsWith('/book')
+  const isAuthRoute = pathname === '/login' || pathname === '/signup'
 
   if (!user && isProtected) {
     const loginUrl = new URL('/login', request.url)
     return NextResponse.redirect(loginUrl)
+  }
+
+  // Redirect authenticated users away from auth pages
+  if (user && isAuthRoute) {
+    const bookingsUrl = new URL('/bookings', request.url)
+    return NextResponse.redirect(bookingsUrl)
   }
 
   // Step 5: Return the supabase response so the refreshed session cookie
