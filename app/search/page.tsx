@@ -3,7 +3,6 @@ import { type Flight } from '@/lib/stores/flightStore'
 import SearchForm from '@/components/SearchForm'
 import FlightList from '@/components/FlightList'
 
-// searchParams is a Promise in Next.js 16 (changed from v15.0.0-RC onward)
 type SearchPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
@@ -11,7 +10,6 @@ type SearchPageProps = {
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams
 
-  // Extract and normalise — always take the first value when an array
   const origin =
     typeof params.origin === 'string' ? params.origin : undefined
   const destination =
@@ -23,10 +21,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const passengers = passengersRaw ? parseInt(passengersRaw, 10) : 1
 
   const hasAllParams = Boolean(origin && destination && date)
-
-  // -------------------------------------------------------------------------
-  // Database query (only when all params are present)
-  // -------------------------------------------------------------------------
 
   let flights: Flight[] = []
   let dbError = false
@@ -51,17 +45,18 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
-
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-background relative overflow-hidden pb-24">
+      {/* Background Gradient */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-accent/5 blur-[120px] rounded-[100%] pointer-events-none" />
+
       {/* Page header / form section */}
-      <section className="bg-gradient-to-br from-slate-900 to-indigo-950 px-4 py-10 md:py-14">
-        <h1 className="text-2xl md:text-3xl font-extrabold text-white text-center mb-6 tracking-tight">
-          Search for flights
-        </h1>
+      <section className="pt-32 pb-12 px-4 relative z-10">
+        <div className="max-w-4xl mx-auto mb-8 text-center">
+           <h1 className="text-3xl md:text-5xl font-extrabold text-foreground tracking-tighter mb-4">
+             Where to next?
+           </h1>
+        </div>
         <SearchForm
           initialOrigin={origin}
           initialDestination={destination}
@@ -71,11 +66,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       </section>
 
       {/* Results section */}
-      <section className="max-w-3xl mx-auto px-4 py-8 md:py-12">
+      <section className="max-w-4xl mx-auto px-4 relative z-10">
         {dbError ? (
-          <p className="text-center text-slate-600 font-medium">
-            Something went wrong. Please try again.
-          </p>
+          <div className="text-center p-8 border border-red-200 bg-red-50 rounded-[2rem]">
+             <p className="text-red-600 font-semibold">Something went wrong. Please try again.</p>
+          </div>
         ) : hasAllParams ? (
           <FlightList flights={flights} passengers={passengers} />
         ) : null}

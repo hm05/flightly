@@ -4,10 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useFlightStore, type Seat } from '@/lib/stores/flightStore'
 import { type RealtimePostgresChangesPayload } from '@supabase/supabase-js'
-
-// ---------------------------------------------------------------------------
-// Format helper
-// ---------------------------------------------------------------------------
+import { motion, AnimatePresence } from 'framer-motion'
+import { CheckCircle } from '@phosphor-icons/react'
 
 const priceFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -15,18 +13,10 @@ const priceFormatter = new Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 0,
 })
 
-// ---------------------------------------------------------------------------
-// Parsed seat type
-// ---------------------------------------------------------------------------
-
 type SeatWithParsed = Seat & {
   row: number
   letter: string
 }
-
-// ---------------------------------------------------------------------------
-// Seat button component
-// ---------------------------------------------------------------------------
 
 type SeatButtonProps = {
   seat?: SeatWithParsed
@@ -36,7 +26,7 @@ type SeatButtonProps = {
 
 function SeatButton({ seat, selectedSeatId, onClick }: SeatButtonProps) {
   if (!seat) {
-    return <div className="w-10 h-10" /> // Spacer for missing seat config
+    return <div className="w-10 h-10" /> 
   }
 
   const isSelected = seat.id === selectedSeatId
@@ -45,14 +35,14 @@ function SeatButton({ seat, selectedSeatId, onClick }: SeatButtonProps) {
   const feeText = seat.extra_fee > 0 ? ` (+${priceFormatter.format(seat.extra_fee)})` : ' (No extra fee)'
   const tooltip = `${seat.class.charAt(0).toUpperCase() + seat.class.slice(1)} Class · ${seat.seat_number}${feeText}`
 
-  let btnClasses = 'w-10 h-10 rounded-lg text-xs font-bold flex items-center justify-center border transition duration-150 '
+  let btnClasses = 'w-10 h-10 rounded-[10px] text-xs font-bold flex items-center justify-center border transition-all duration-300 relative overflow-hidden '
 
   if (isOccupied) {
-    btnClasses += 'bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed'
+    btnClasses += 'bg-zinc-100/50 text-zinc-300 border-zinc-200 cursor-not-allowed'
   } else if (isSelected) {
-    btnClasses += 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/30 scale-105'
+    btnClasses += 'bg-foreground text-white border-foreground shadow-md shadow-zinc-900/10'
   } else {
-    btnClasses += 'bg-white text-slate-700 hover:text-indigo-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 cursor-pointer'
+    btnClasses += 'bg-white text-zinc-400 hover:text-foreground border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 cursor-pointer active:scale-95'
   }
 
   return (
@@ -63,14 +53,31 @@ function SeatButton({ seat, selectedSeatId, onClick }: SeatButtonProps) {
       onClick={() => onClick(seat)}
       className={btnClasses}
     >
-      {seat.seat_number}
+      <AnimatePresence mode="popLayout">
+        {isSelected ? (
+          <motion.div
+            key="check"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          >
+            <CheckCircle weight="bold" size={16} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="text"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+          >
+            {seat.seat_number}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </button>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Main Component
-// ---------------------------------------------------------------------------
 
 type SeatMapProps = {
   seats: Seat[]
@@ -81,14 +88,11 @@ export default function SeatMap({ seats, flightId }: SeatMapProps) {
   const { selectedSeat, setSelectedSeat, clearSeatSelection } = useFlightStore()
   const [localSeats, setLocalSeats] = useState<Seat[]>(seats)
 
-  // Keep a stable ref to the latest selectedSeat so the Realtime callback can
-  // read the current value without needing to re-subscribe on every change.
   const selectedSeatRef = useRef<Seat | null>(selectedSeat)
   useEffect(() => {
     selectedSeatRef.current = selectedSeat
   }, [selectedSeat])
 
-  // Stable callback that always reads the latest ref — identity never changes.
   const handleRealtimeUpdate = useCallback((updatedSeat: Seat) => {
     const current = selectedSeatRef.current
     if (!updatedSeat.is_available && current && current.id === updatedSeat.id) {
@@ -97,7 +101,6 @@ export default function SeatMap({ seats, flightId }: SeatMapProps) {
     }
   }, [clearSeatSelection])
 
-  // Supabase Realtime subscription
   useEffect(() => {
     const supabase = createClient()
     const channelName = `seats-${flightId}`
@@ -127,7 +130,6 @@ export default function SeatMap({ seats, flightId }: SeatMapProps) {
     }
   }, [flightId, handleRealtimeUpdate])
 
-  // Group and parse localSeats
   const parsedSeats: SeatWithParsed[] = localSeats.map((seat) => {
     const match = seat.seat_number.match(/^(\d+)([A-Z])$/)
     return {
@@ -137,12 +139,10 @@ export default function SeatMap({ seats, flightId }: SeatMapProps) {
     }
   })
 
-  // Categorize rows
   const firstClass = parsedSeats.filter((s) => s.row >= 1 && s.row <= 2)
   const businessClass = parsedSeats.filter((s) => s.row >= 3 && s.row <= 6)
   const economyClass = parsedSeats.filter((s) => s.row >= 7 && s.row <= 15)
 
-  // Section grouping helper
   function renderSectionRows(sectionSeats: SeatWithParsed[], isEconomy: boolean) {
     const rowsMap: Record<number, SeatWithParsed[]> = {}
     sectionSeats.forEach((s) => {
@@ -155,7 +155,7 @@ export default function SeatMap({ seats, flightId }: SeatMapProps) {
       .sort((a, b) => a - b)
 
     return (
-      <div className="flex flex-col gap-3 py-2">
+      <div className="flex flex-col gap-3 py-4">
         {sortedRowNums.map((rowNum) => {
           const rowSeats = rowsMap[rowNum]
 
@@ -165,39 +165,30 @@ export default function SeatMap({ seats, flightId }: SeatMapProps) {
             const seatC = rowSeats.find((s) => s.letter === 'C')
 
             return (
-              <div key={rowNum} className="flex items-center justify-center gap-3">
-                {/* Left side: A B */}
+              <div key={rowNum} className="flex items-center justify-center gap-3 relative">
                 <div className="flex items-center gap-3">
                   <SeatButton seat={seatA} selectedSeatId={selectedSeat?.id} onClick={setSelectedSeat} />
                   <SeatButton seat={seatB} selectedSeatId={selectedSeat?.id} onClick={setSelectedSeat} />
                 </div>
-
-                {/* Aisle gap / Row label */}
-                <div className="w-16 flex justify-center text-slate-400 text-xs font-mono font-bold select-none">
+                <div className="w-16 flex justify-center text-zinc-300 text-[10px] font-mono font-bold select-none uppercase tracking-widest">
                   Row {rowNum}
                 </div>
-
-                {/* Right side: C */}
                 <div className="flex items-center gap-3">
                   <SeatButton seat={seatC} selectedSeatId={selectedSeat?.id} onClick={setSelectedSeat} />
-                  <div className="w-10 h-10" /> {/* Balanced visual placeholder */}
+                  <div className="w-10 h-10" /> 
                 </div>
               </div>
             )
           } else {
-            // First / Business (A | B)
             const seatA = rowSeats.find((s) => s.letter === 'A')
             const seatB = rowSeats.find((s) => s.letter === 'B')
 
             return (
-              <div key={rowNum} className="flex items-center justify-center gap-3">
+              <div key={rowNum} className="flex items-center justify-center gap-3 relative">
                 <SeatButton seat={seatA} selectedSeatId={selectedSeat?.id} onClick={setSelectedSeat} />
-
-                {/* Aisle gap / Row label */}
-                <div className="w-16 flex justify-center text-slate-400 text-xs font-mono font-bold select-none">
+                <div className="w-16 flex justify-center text-zinc-300 text-[10px] font-mono font-bold select-none uppercase tracking-widest">
                   Row {rowNum}
                 </div>
-
                 <SeatButton seat={seatB} selectedSeatId={selectedSeat?.id} onClick={setSelectedSeat} />
               </div>
             )
@@ -210,15 +201,20 @@ export default function SeatMap({ seats, flightId }: SeatMapProps) {
   return (
     <div className="w-full flex flex-col items-center">
       {/* Scrollable airplane seat map container */}
-      <div className="w-full max-w-md max-h-[60vh] overflow-y-auto border border-slate-200 rounded-2xl bg-slate-50/50 p-6 shadow-inner mb-6 scrollbar-thin scrollbar-thumb-slate-200">
-        <div className="flex flex-col gap-6">
+      <div className="w-full max-w-md max-h-[60vh] overflow-y-auto border border-zinc-200/50 rounded-[2.5rem] bg-zinc-50/30 p-8 shadow-inner mb-8 scrollbar-thin scrollbar-thumb-zinc-200">
+        <div className="flex flex-col gap-8 relative">
+           
+          {/* Fuselage Lines (decorative) */}
+          <div className="absolute top-0 bottom-0 left-[20%] w-px bg-zinc-200/50" />
+          <div className="absolute top-0 bottom-0 right-[20%] w-px bg-zinc-200/50" />
 
           {/* Section 1: First Class */}
           {firstClass.length > 0 && (
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-xs font-semibold text-indigo-700 tracking-wider uppercase">First Class</span>
-                <div className="flex-1 h-px bg-slate-200" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-1 h-px bg-zinc-200/50" />
+                <span className="text-[10px] font-bold text-accent tracking-widest uppercase">First Class</span>
+                <div className="flex-1 h-px bg-zinc-200/50" />
               </div>
               {renderSectionRows(firstClass, false)}
             </div>
@@ -226,10 +222,11 @@ export default function SeatMap({ seats, flightId }: SeatMapProps) {
 
           {/* Section 2: Business Class */}
           {businessClass.length > 0 && (
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-xs font-semibold text-indigo-700 tracking-wider uppercase">Business Class</span>
-                <div className="flex-1 h-px bg-slate-200" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-1 h-px bg-zinc-200/50" />
+                <span className="text-[10px] font-bold text-accent tracking-widest uppercase">Business</span>
+                <div className="flex-1 h-px bg-zinc-200/50" />
               </div>
               {renderSectionRows(businessClass, false)}
             </div>
@@ -237,10 +234,11 @@ export default function SeatMap({ seats, flightId }: SeatMapProps) {
 
           {/* Section 3: Economy Class */}
           {economyClass.length > 0 && (
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-xs font-semibold text-indigo-700 tracking-wider uppercase">Economy</span>
-                <div className="flex-1 h-px bg-slate-200" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-1 h-px bg-zinc-200/50" />
+                <span className="text-[10px] font-bold text-accent tracking-widest uppercase">Economy</span>
+                <div className="flex-1 h-px bg-zinc-200/50" />
               </div>
               {renderSectionRows(economyClass, true)}
             </div>
@@ -250,21 +248,20 @@ export default function SeatMap({ seats, flightId }: SeatMapProps) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-6 text-xs font-semibold text-slate-600">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-white border border-slate-200 rounded-md" />
+      <div className="flex items-center justify-center gap-8 text-[10px] uppercase tracking-wider font-bold text-zinc-400">
+        <div className="flex items-center gap-3">
+          <div className="w-4 h-4 bg-white border border-zinc-200 rounded-[4px]" />
           <span>Available</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-indigo-600 rounded-md" />
-          <span>Selected</span>
+        <div className="flex items-center gap-3">
+          <div className="w-4 h-4 bg-foreground rounded-[4px] shadow-sm" />
+          <span className="text-foreground">Selected</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-slate-100 border border-slate-200 rounded-md" />
+        <div className="flex items-center gap-3">
+          <div className="w-4 h-4 bg-zinc-100 border border-zinc-200 rounded-[4px]" />
           <span>Occupied</span>
         </div>
       </div>
     </div>
   )
 }
-

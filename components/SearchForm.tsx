@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFlightStore } from '@/lib/stores/flightStore'
+import { MagnifyingGlass, Users, CalendarBlank, MapPin, CaretDown } from '@phosphor-icons/react'
 
 type Airport = {
   code: string
@@ -41,12 +42,15 @@ export default function SearchForm({
 
   // Pre-fill from the store on return visits (only if no initial props provided)
   useEffect(() => {
-    if (!initialOrigin && !initialDestination && !initialDate && searchQuery) {
-      setOrigin(searchQuery.origin)
-      setDestination(searchQuery.destination)
-      setDate(searchQuery.date)
-      setPassengers(searchQuery.passengers)
+    const updateState = () => {
+      if (!initialOrigin && !initialDestination && !initialDate && searchQuery) {
+        setOrigin(searchQuery.origin)
+        setDestination(searchQuery.destination)
+        setDate(searchQuery.date)
+        setPassengers(searchQuery.passengers)
+      }
     }
+    updateState()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -89,146 +93,138 @@ export default function SearchForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white rounded-2xl shadow-lg shadow-slate-200/60 p-6 md:p-8 w-full max-w-3xl mx-auto"
+      className="bg-white rounded-3xl border border-zinc-200 p-2 w-full max-w-4xl mx-auto diffusion-shadow flex flex-col md:flex-row gap-2"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
         {/* Origin */}
-        <div className="flex flex-col gap-1.5">
+        <div className="relative flex flex-col justify-center bg-zinc-50 hover:bg-zinc-100/50 rounded-2xl px-4 py-3 border border-transparent transition-colors focus-within:border-zinc-300 focus-within:bg-white group cursor-pointer">
           <label
             htmlFor="origin"
-            className="text-sm font-semibold text-slate-700"
+            className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5 group-focus-within:text-accent transition-colors"
           >
             Origin
           </label>
-          <select
-            id="origin"
-            value={origin}
-            onChange={(e) => {
-              setOrigin(e.target.value)
-              setSameRouteError(false)
-            }}
-            required
-            className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-          >
-            <option value="" disabled>
-              Select origin
-            </option>
-            {AIRPORTS.map((a) => (
-              <option key={a.code} value={a.code}>
-                {a.label}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <MapPin size={16} weight="bold" className="text-zinc-400" />
+            <select
+              id="origin"
+              value={origin}
+              onChange={(e) => {
+                setOrigin(e.target.value)
+                setSameRouteError(false)
+              }}
+              required
+              className="w-full bg-transparent text-sm font-semibold text-foreground focus:outline-none appearance-none cursor-pointer"
+            >
+              <option value="" disabled>Where from?</option>
+              {AIRPORTS.map((a) => (
+                <option key={a.code} value={a.code}>{a.label}</option>
+              ))}
+            </select>
+            <CaretDown size={14} weight="bold" className="text-zinc-400 absolute right-4 pointer-events-none" />
+          </div>
         </div>
 
         {/* Destination */}
-        <div className="flex flex-col gap-1.5">
+        <div className="relative flex flex-col justify-center bg-zinc-50 hover:bg-zinc-100/50 rounded-2xl px-4 py-3 border border-transparent transition-colors focus-within:border-zinc-300 focus-within:bg-white group cursor-pointer">
           <label
             htmlFor="destination"
-            className="text-sm font-semibold text-slate-700"
+            className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5 group-focus-within:text-accent transition-colors"
           >
             Destination
           </label>
-          <select
-            id="destination"
-            value={destination}
-            onChange={(e) => {
-              setDestination(e.target.value)
-              setSameRouteError(false)
-            }}
-            required
-            className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-          >
-            <option value="" disabled>
-              Select destination
-            </option>
-            {AIRPORTS.map((a) => (
-              <option key={a.code} value={a.code}>
-                {a.label}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <MapPin size={16} weight="bold" className="text-zinc-400" />
+            <select
+              id="destination"
+              value={destination}
+              onChange={(e) => {
+                setDestination(e.target.value)
+                setSameRouteError(false)
+              }}
+              required
+              className="w-full bg-transparent text-sm font-semibold text-foreground focus:outline-none appearance-none cursor-pointer"
+            >
+              <option value="" disabled>Where to?</option>
+              {AIRPORTS.map((a) => (
+                <option key={a.code} value={a.code}>{a.label}</option>
+              ))}
+            </select>
+            <CaretDown size={14} weight="bold" className="text-zinc-400 absolute right-4 pointer-events-none" />
+          </div>
         </div>
 
         {/* Date */}
-        <div className="flex flex-col gap-1.5">
+        <div className="relative flex flex-col justify-center bg-zinc-50 hover:bg-zinc-100/50 rounded-2xl px-4 py-3 border border-transparent transition-colors focus-within:border-zinc-300 focus-within:bg-white group cursor-pointer">
           <label
             htmlFor="date"
-            className="text-sm font-semibold text-slate-700"
+            className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5 group-focus-within:text-accent transition-colors"
           >
             Date
           </label>
-          <input
-            id="date"
-            type="date"
-            min={todayISO}
-            value={date}
-            onChange={(e) => {
-              setDate(e.target.value)
-              setNoDateError(false)
-            }}
-            className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-          />
+          <div className="flex items-center gap-2">
+            <CalendarBlank size={16} weight="bold" className="text-zinc-400" />
+            <input
+              id="date"
+              type="date"
+              min={todayISO}
+              value={date}
+              onChange={(e) => {
+                setDate(e.target.value)
+                setNoDateError(false)
+              }}
+              className="w-full bg-transparent text-sm font-semibold text-foreground focus:outline-none cursor-pointer"
+            />
+          </div>
         </div>
 
         {/* Passengers */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold text-slate-700">
+        <div className="relative flex flex-col justify-center bg-zinc-50 rounded-2xl px-4 py-3 border border-transparent transition-colors focus-within:border-zinc-300">
+          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5">
             Passengers
           </span>
-          <div className="h-11 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={decrement}
-              disabled={passengers <= 1}
-              aria-label="Decrease passengers"
-              className="w-9 h-9 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-bold text-lg flex items-center justify-center hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              −
-            </button>
-            <span
-              className="w-5 text-center text-sm font-semibold text-slate-900 tabular-nums"
-              aria-live="polite"
-            >
-              {passengers}
-            </span>
-            <button
-              type="button"
-              onClick={increment}
-              disabled={passengers >= 9}
-              aria-label="Increase passengers"
-              className="w-9 h-9 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-bold text-lg flex items-center justify-center hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              +
-            </button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+               <Users size={16} weight="bold" className="text-zinc-400" />
+               <span className="text-sm font-semibold text-foreground tabular-nums min-w-[20px]">{passengers}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={decrement}
+                disabled={passengers <= 1}
+                className="w-6 h-6 rounded-md bg-white border border-zinc-200 text-zinc-500 font-bold flex items-center justify-center hover:border-zinc-300 hover:text-foreground disabled:opacity-40 active:scale-95 transition-all"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                onClick={increment}
+                disabled={passengers >= 9}
+                className="w-6 h-6 rounded-md bg-white border border-zinc-200 text-zinc-500 font-bold flex items-center justify-center hover:border-zinc-300 hover:text-foreground disabled:opacity-40 active:scale-95 transition-all"
+              >
+                +
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Inline errors */}
-      {sameRouteError && (
-        <p
-          role="alert"
-          className="mt-3 text-sm text-red-600 font-medium"
-        >
-          Origin and destination cannot be the same.
-        </p>
-      )}
-      {noDateError && (
-        <p
-          role="alert"
-          className="mt-3 text-sm text-red-600 font-medium"
-        >
-          Please select a travel date.
-        </p>
-      )}
-
       <button
         type="submit"
-        className="mt-5 w-full h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition shadow-sm shadow-indigo-600/30 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        className="w-full md:w-auto h-auto min-h-[60px] md:min-w-[120px] bg-accent hover:bg-accent/90 text-white font-bold rounded-2xl transition-all shadow-md shadow-accent/20 active:scale-[0.98] flex items-center justify-center gap-2 px-6"
       >
-        Search flights
+        <MagnifyingGlass size={20} weight="bold" />
+        <span className="md:hidden">Search</span>
       </button>
+
+      {/* Inline errors */}
+      {(sameRouteError || noDateError) && (
+        <div className="absolute -bottom-8 left-0 right-0 text-center">
+          {sameRouteError && <span className="text-xs font-semibold text-rose-500 bg-rose-50 px-3 py-1 rounded-full">Origin and destination cannot be the same</span>}
+          {noDateError && <span className="text-xs font-semibold text-rose-500 bg-rose-50 px-3 py-1 rounded-full">Please select a travel date</span>}
+        </div>
+      )}
     </form>
   )
 }

@@ -115,17 +115,20 @@ export default async function BookingsPage() {
         }))
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      {/* Dark gradient header — matches search page */}
-      <section className="bg-gradient-to-br from-slate-900 to-indigo-950 px-4 py-10 md:py-14">
+    <main className="min-h-screen bg-background relative overflow-hidden pb-24">
+      {/* Background Gradient matching search page */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-accent/5 blur-[120px] rounded-[100%] pointer-events-none" />
+
+      {/* Page header section */}
+      <section className="pt-32 pb-8 px-4 relative z-10">
         <div className="max-w-3xl mx-auto">
-          <p className="text-xs font-mono tracking-widest text-indigo-300 font-bold uppercase mb-2">
+          <p className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2">
             Your trips
           </p>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl md:text-5xl font-extrabold text-foreground tracking-tighter">
             My Bookings
           </h1>
-          <p className="text-indigo-200 text-sm mt-2">
+          <p className="text-zinc-500 font-medium mt-4">
             View, reschedule, or cancel your upcoming flights.
           </p>
         </div>

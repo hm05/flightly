@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { reportError } from '@/lib/errors'
+import { AirplaneTilt, CheckCircle } from '@phosphor-icons/react'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
@@ -34,60 +35,44 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6">
+    <main className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
+      <div className="w-full max-w-md bg-white rounded-[2rem] diffusion-shadow border border-zinc-200/50 p-8 sm:p-10 space-y-8">
 
         {confirmed ? (
           /* ── Success state ─────────────────────────────── */
           <div className="flex flex-col items-center gap-4 text-center">
-            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-green-100 text-green-600">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="w-8 h-8"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z"
-                  clipRule="evenodd"
-                />
-              </svg>
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 text-emerald-600">
+              <CheckCircle size={32} weight="fill" />
             </div>
-            <h1 className="text-xl font-bold text-slate-800">Check your email</h1>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Check your email to confirm your account.
-              You can close this tab.
-            </p>
+            <div>
+              <h1 className="text-xl font-black text-foreground">Check your email</h1>
+              <p className="text-sm font-medium text-zinc-500 mt-2 leading-relaxed">
+                Check your email to confirm your account.<br/>
+                You can safely close this tab.
+              </p>
+            </div>
           </div>
         ) : (
           /* ── Sign-up form ──────────────────────────────── */
           <>
             {/* Header */}
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex items-center justify-center w-14 h-14 rounded-full bg-indigo-100 text-indigo-600">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="w-8 h-8"
-                  aria-hidden="true"
-                >
-                  <path d="M3.478 2.405a.75.75 0 0 0-.926.94l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.405Z" />
-                </svg>
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-zinc-100 text-foreground">
+                <AirplaneTilt size={32} weight="duotone" />
               </div>
-              <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Flightly</h1>
-              <p className="text-sm text-slate-500">Create your account</p>
+              <div>
+                <h1 className="text-2xl font-black text-foreground tracking-tight">Flightly</h1>
+                <p className="text-sm font-medium text-zinc-500 mt-1">Create your account</p>
+              </div>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
 
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <label
                   htmlFor="signup-email"
-                  className="block text-sm font-medium text-slate-700"
+                  className="block text-xs font-bold uppercase tracking-widest text-zinc-500"
                 >
                   Email address
                 </label>
@@ -100,14 +85,14 @@ export default function SignupPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                  className="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm text-foreground font-medium placeholder-zinc-400 shadow-sm outline-none transition-all focus:border-foreground focus:ring-1 focus:ring-foreground disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400"
                 />
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <label
                   htmlFor="signup-password"
-                  className="block text-sm font-medium text-slate-700"
+                  className="block text-xs font-bold uppercase tracking-widest text-zinc-500"
                 >
                   Password
                 </label>
@@ -120,13 +105,13 @@ export default function SignupPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                  className="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm text-foreground font-medium placeholder-zinc-400 shadow-sm outline-none transition-all focus:border-foreground focus:ring-1 focus:ring-foreground disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400"
                 />
               </div>
 
               {/* Inline error */}
               {error && (
-                <p role="alert" className="text-sm text-red-600 font-medium">
+                <p role="alert" className="text-sm text-rose-600 font-bold bg-rose-50 p-3 rounded-lg border border-rose-100">
                   {error}
                 </p>
               )}
@@ -134,18 +119,18 @@ export default function SignupPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-xl bg-foreground px-4 py-3.5 text-sm font-bold text-white shadow-md shadow-zinc-900/10 transition-all hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]"
               >
                 {loading ? 'Creating account…' : 'Create account'}
               </button>
             </form>
 
             {/* Footer link */}
-            <p className="text-center text-sm text-slate-500">
+            <p className="text-center text-sm font-medium text-zinc-500">
               Already have an account?{' '}
               <Link
                 href="/login"
-                className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
+                className="font-bold text-foreground hover:opacity-70 transition-opacity"
               >
                 Sign in
               </Link>

@@ -1,179 +1,186 @@
 'use client'
 
-import { useUserStore } from '@/lib/stores/userStore'
-
-// ---------------------------------------------------------------------------
-// Formatters
-// ---------------------------------------------------------------------------
-
-const istDateFormatter = new Intl.DateTimeFormat('en-IN', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-  timeZone: 'Asia/Kolkata',
-})
-
-function formatIST(isoString: string): string {
-  const parts = istDateFormatter.formatToParts(new Date(isoString))
-  const get = (type: string) =>
-    parts.find((p) => p.type === type)?.value ?? ''
-  return `${get('day')} ${get('month')} ${get('year')} · ${get('hour')}:${get('minute')} IST`
-}
-
-// ---------------------------------------------------------------------------
-// Status badge — mirrors BookingsList colours
-// ---------------------------------------------------------------------------
-
-type Status = 'confirmed' | 'rescheduled' | 'cancelled'
-
-function StatusBadge({ status }: { status: Status }) {
-  const styles: Record<Status, string> = {
-    confirmed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    rescheduled: 'bg-amber-50 text-amber-700 border-amber-200',
-    cancelled: 'bg-slate-100 text-slate-400 border-slate-200',
-  }
-  const labels: Record<Status, string> = {
-    confirmed: 'Confirmed',
-    rescheduled: 'Rescheduled',
-    cancelled: 'Cancelled',
-  }
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${styles[status]}`}
-    >
-      {labels[status]}
-    </span>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
+import { WifiSlash, MapPin, CalendarBlank, Users, Ticket } from '@phosphor-icons/react'
+import { useUserStore, type CachedBooking } from '@/lib/stores/userStore'
 
 export default function OfflinePage() {
-  // Read from Zustand — persisted to localStorage so it works offline.
-  // NOTE: cachedBookings is NOT persisted (see userStore partialize), so
-  // this will always be an empty array when the store rehydrates from
-  // localStorage. The offline page gracefully handles this below.
   const cachedBookings = useUserStore((s) => s.cachedBookings)
 
+  const istDateFormatter = new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Kolkata',
+  })
+
+  function formatIST(isoString: string): string {
+    const parts = istDateFormatter.formatToParts(new Date(isoString))
+    const get = (type: string) =>
+      parts.find((p) => p.type === type)?.value ?? ''
+    return `${get('day')} ${get('month')} ${get('year')} · ${get('hour')}:${get('minute')} IST`
+  }
+
+  function StatusBadge({ status }: { status: CachedBooking['status'] }) {
+    const styles: Record<CachedBooking['status'], string> = {
+      confirmed: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+      rescheduled: 'bg-amber-50 text-amber-600 border-amber-200',
+      cancelled: 'bg-zinc-50 text-zinc-400 border-zinc-200',
+    }
+    const labels: Record<CachedBooking['status'], string> = {
+      confirmed: 'Confirmed',
+      rescheduled: 'Rescheduled',
+      cancelled: 'Cancelled',
+    }
+    return (
+      <span
+        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold border ${styles[status]}`}
+      >
+        {labels[status]}
+      </span>
+    )
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-16">
-      {/* ----------------------------------------------------------------- */}
-      {/* Header                                                              */}
-      {/* ----------------------------------------------------------------- */}
-      <div className="mb-10 flex flex-col items-center gap-4 text-center">
-        {/* Wifi-off icon */}
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-indigo-500">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="h-8 w-8"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3 3l18 18M8.111 8.111A7.5 7.5 0 0 0 4.5 12a7.5 7.5 0 0 0 7.5 7.5 7.5 7.5 0 0 0 5.196-2.085M9.75 9.75a3 3 0 0 0 4.24 4.243M6.228 6.228A10.451 10.451 0 0 0 1.5 12a10.452 10.452 0 0 0 10.5 10.5c2.657 0 5.083-.989 6.9-2.61M12 4.5A10.452 10.452 0 0 1 22.5 12a10.45 10.45 0 0 1-1.94 6.04"
-            />
-          </svg>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 px-4 py-16">
+      <div className="w-full max-w-2xl">
+        {/* Offline Notice Header */}
+        <div className="mb-12 text-center flex flex-col items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 text-foreground">
+            <WifiSlash size={32} weight="duotone" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-foreground">
+              You are offline
+            </h1>
+            <p className="text-sm font-medium text-zinc-500 mt-1">
+              You can still view your recent boarding passes below.
+            </p>
+          </div>
         </div>
 
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-800">
-          You&apos;re offline
-        </h1>
-        <p className="text-sm text-slate-500">
-          Showing your last saved bookings
-        </p>
-      </div>
+        {/* Offline Bookings / Boarding Passes */}
+        {cachedBookings && cachedBookings.length > 0 ? (
+          <div className="space-y-6">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-400 px-2">
+              Saved Boarding Passes
+            </h2>
+            <div className="grid gap-6">
+              {cachedBookings.map((booking: CachedBooking) => {
+                const isCancelled = booking.status === 'cancelled'
 
-      {/* ----------------------------------------------------------------- */}
-      {/* Booking list or empty state                                         */}
-      {/* ----------------------------------------------------------------- */}
-      <div className="w-full max-w-lg">
-        {cachedBookings.length > 0 ? (
-          <div className="flex flex-col gap-3">
-            {cachedBookings.map((booking) => (
-              <article
-                key={booking.id}
-                className={`rounded-2xl border bg-white p-5 shadow-sm shadow-slate-100 ${
-                  booking.status === 'cancelled'
-                    ? 'border-slate-100 opacity-60'
-                    : 'border-slate-200'
-                }`}
-              >
-                {/* PNR + status */}
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <div>
-                    <p className="mb-0.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      Booking Reference
-                    </p>
-                    <p className="font-mono text-xl font-black tracking-wider text-indigo-800">
-                      {booking.pnr_code}
-                    </p>
-                  </div>
-                  <StatusBadge status={booking.status} />
-                </div>
+                return (
+                  <article
+                    key={booking.id}
+                    className={`rounded-[2rem] border bg-white p-6 diffusion-shadow transition-all ${
+                      isCancelled
+                        ? 'border-zinc-100 opacity-60 grayscale-[0.5]'
+                        : 'border-zinc-200/50 hover:border-zinc-300'
+                    }`}
+                  >
+                    {/* Top row: PNR + status */}
+                    <div className="mb-6 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                          Booking Reference
+                        </p>
+                        <p className="font-mono text-2xl font-black tracking-wider text-foreground">
+                          {booking.pnr_code}
+                        </p>
+                      </div>
+                      <StatusBadge status={booking.status} />
+                    </div>
 
-                {/* Flight details */}
-                <div className="grid grid-cols-1 gap-1.5 text-sm sm:grid-cols-2">
-                  <div>
-                    <span className="text-xs font-medium text-slate-400">
-                      Flight
-                    </span>
-                    <p className="font-semibold text-slate-800">
-                      {booking.flight_no} · {booking.origin} →{' '}
-                      {booking.destination}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-xs font-medium text-slate-400">
-                      Departs
-                    </span>
-                    <p className="font-semibold text-slate-800">
-                      {formatIST(booking.departs_at)}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-xs font-medium text-slate-400">
-                      Seat
-                    </span>
-                    <p className="font-semibold text-slate-800">
-                      {booking.seat_number}
-                    </p>
-                  </div>
-                </div>
-              </article>
-            ))}
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-start gap-3">
+                          <MapPin
+                            weight="duotone"
+                            className="mt-0.5 text-zinc-400"
+                            size={20}
+                          />
+                          <div>
+                            <span className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                              Flight
+                            </span>
+                            <p className="font-bold text-foreground">
+                              {booking.flight_no} · {booking.origin} →{' '}
+                              {booking.destination}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <CalendarBlank
+                            weight="duotone"
+                            className="mt-0.5 text-zinc-400"
+                            size={20}
+                          />
+                          <div>
+                            <span className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                              Departs
+                            </span>
+                            <p className="font-bold text-foreground">
+                              {formatIST(booking.departs_at)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-start gap-3">
+                          <Users
+                            weight="duotone"
+                            className="mt-0.5 text-zinc-400"
+                            size={20}
+                          />
+                          <div>
+                            <span className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                              Seat
+                            </span>
+                            <p className="font-bold text-foreground capitalize">
+                              {booking.seat_number}{' '}
+                              <span className="text-xs font-semibold text-zinc-400">
+                              { /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ }
+                              {((booking as any).class || 'Economy')}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
-            <p className="text-sm font-medium text-slate-500">
-              No cached bookings found.
-            </p>
-            <p className="mt-1 text-sm text-slate-400">
-              Connect to the internet to view your bookings.
-            </p>
+          <div className="rounded-[2rem] border border-zinc-200/50 bg-white px-6 py-10 text-center diffusion-shadow flex flex-col items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-50 text-zinc-400">
+              <Ticket size={24} weight="duotone" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">
+                No offline boarding passes available
+              </p>
+              <p className="mt-1 text-sm font-medium text-zinc-500">
+                You haven&apos;t viewed any bookings recently to save them for offline access.
+              </p>
+            </div>
           </div>
         )}
-      </div>
 
-      {/* ----------------------------------------------------------------- */}
-      {/* Reconnect button                                                    */}
-      {/* ----------------------------------------------------------------- */}
-      <button
-        type="button"
-        onClick={() => window.location.reload()}
-        className="mt-8 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-600/20 transition hover:bg-indigo-500"
-      >
-        Try reconnecting
-      </button>
+        <div className="mt-12 text-center">
+          <button
+            onClick={() => window.location.reload()}
+            className="rounded-xl bg-foreground px-6 py-3 text-sm font-bold text-white shadow-md shadow-zinc-900/10 transition-all hover:bg-zinc-800 active:scale-[0.98]"
+          >
+            Try reloading
+          </button>
+        </div>
+      </div>
     </main>
   )
 }

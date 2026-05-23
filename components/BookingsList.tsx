@@ -8,14 +8,9 @@ import { useUserStore } from '@/lib/stores/userStore'
 import { type BookingWithDetails } from '@/app/bookings/page'
 import dynamic from 'next/dynamic'
 import { type Flight } from '@/lib/stores/flightStore'
+import { Ticket } from '@phosphor-icons/react'
 
-// dynamic() must be called at module level — it returns a component (an expression,
-// a value), so the result is stored in a variable and used in JSX like any import.
 const RescheduleModal = dynamic(() => import('./RescheduleModal'), { ssr: false })
-
-// ---------------------------------------------------------------------------
-// Formatters
-// ---------------------------------------------------------------------------
 
 const istDateFormatter = new Intl.DateTimeFormat('en-IN', {
   day: '2-digit',
@@ -40,18 +35,14 @@ function formatIST(isoString: string): string {
   return `${get('day')} ${get('month')} ${get('year')} · ${get('hour')}:${get('minute')} IST`
 }
 
-// ---------------------------------------------------------------------------
-// Status badge
-// ---------------------------------------------------------------------------
-
 function StatusBadge({ status }: { status: BookingWithDetails['status'] }) {
   const styles: Record<BookingWithDetails['status'], string> = {
     confirmed:
-      'bg-emerald-50 text-emerald-700 border-emerald-200',
+      'bg-emerald-50 text-emerald-600 border border-emerald-200',
     rescheduled:
-      'bg-amber-50 text-amber-700 border-amber-200',
+      'bg-amber-50 text-amber-600 border border-amber-200',
     cancelled:
-      'bg-slate-100 text-slate-400 border-slate-200',
+      'bg-zinc-50 text-zinc-400 border border-zinc-200',
   }
   const labels: Record<BookingWithDetails['status'], string> = {
     confirmed: 'Confirmed',
@@ -60,24 +51,16 @@ function StatusBadge({ status }: { status: BookingWithDetails['status'] }) {
   }
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize ${styles[status]}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${styles[status]}`}
     >
       {labels[status]}
     </span>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
-
 type BookingsListProps = {
   bookings: BookingWithDetails[]
 }
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export default function BookingsList({
   bookings: initialBookings,
@@ -93,9 +76,6 @@ export default function BookingsList({
 
   const { updateBookingStatus } = useUserStore()
 
-  // -------------------------------------------------------------------------
-  // Escape key handler for confirm panel
-  // -------------------------------------------------------------------------
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && confirmCancelId) {
@@ -106,10 +86,6 @@ export default function BookingsList({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [confirmCancelId])
-
-  // -------------------------------------------------------------------------
-  // Cancel handler
-  // -------------------------------------------------------------------------
 
   async function handleConfirmCancel(booking: BookingWithDetails) {
     setCancellingId(booking.id)
@@ -143,10 +119,6 @@ export default function BookingsList({
     setCancellingId(null)
   }
 
-  // -------------------------------------------------------------------------
-  // Reschedule success callback
-  // -------------------------------------------------------------------------
-
   function handleRescheduled(bookingId: string, newFlight: Flight) {
     setBookings((prev) =>
       prev.map((b) =>
@@ -166,39 +138,21 @@ export default function BookingsList({
     setRescheduleBooking(null)
   }
 
-  // -------------------------------------------------------------------------
-  // Empty state
-  // -------------------------------------------------------------------------
-
   if (bookings.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
-        <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-400">
-          {/* Ticket icon */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-8 h-8"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="m16.5 6-9 12m0 0h9m-9 0 9-12"
-            />
-          </svg>
+      <div className="flex flex-col items-center justify-center py-24 text-center gap-6 bg-white rounded-[2rem] border border-zinc-200/50 diffusion-shadow">
+        <div className="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center text-zinc-300">
+          <Ticket size={32} weight="duotone" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-slate-800">No bookings yet</h2>
-          <p className="text-slate-500 text-sm mt-1">
+          <h2 className="text-xl font-bold text-foreground tracking-tight">No bookings yet</h2>
+          <p className="text-zinc-500 font-medium mt-1">
             Start by searching for a flight
           </p>
         </div>
         <Link
           href="/search"
-          className="mt-2 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-5 rounded-xl transition shadow-sm shadow-indigo-600/20 text-sm"
+          className="bg-foreground hover:bg-zinc-800 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md shadow-zinc-900/10 active:scale-[0.98]"
         >
           Search flights
         </Link>
@@ -206,13 +160,9 @@ export default function BookingsList({
     )
   }
 
-  // -------------------------------------------------------------------------
-  // Booking cards
-  // -------------------------------------------------------------------------
-
   return (
     <>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6 relative z-10">
         {bookings.map((booking) => {
           const isCancelled = booking.status === 'cancelled'
           const isActionable = !isCancelled
@@ -221,19 +171,19 @@ export default function BookingsList({
           return (
             <article
               key={booking.id}
-              className={`bg-white border rounded-2xl p-5 shadow-sm shadow-slate-100 transition ${
+              className={`bg-white rounded-3xl p-6 diffusion-shadow transition-all ${
                 isCancelled
-                  ? 'border-slate-100 opacity-60'
-                  : 'border-slate-200 hover:shadow-md hover:shadow-slate-200/60'
+                  ? 'border border-zinc-100 opacity-60 grayscale-[0.5]'
+                  : 'border border-zinc-200/50 hover:border-zinc-300'
               }`}
             >
               {/* Top row: PNR + status */}
-              <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="flex items-start justify-between gap-3 mb-6">
                 <div>
-                  <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-0.5">
+                  <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-1">
                     Booking Reference
                   </p>
-                  <p className="font-mono font-black text-xl text-indigo-800 tracking-wider">
+                  <p className="font-mono font-black text-2xl text-foreground tracking-wider">
                     {booking.pnr_code}
                   </p>
                 </div>
@@ -241,43 +191,43 @@ export default function BookingsList({
               </div>
 
               {/* Flight info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
-                <div className="flex flex-col gap-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm mb-6">
+                <div className="flex flex-col gap-4">
                   <div>
-                    <span className="text-slate-400 text-xs font-medium">
+                    <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest block mb-1">
                       Flight
                     </span>
-                    <p className="font-semibold text-slate-800">
+                    <p className="font-bold text-foreground">
                       {booking.flight_no} · {booking.origin} →{' '}
                       {booking.destination}
                     </p>
                   </div>
                   <div>
-                    <span className="text-slate-400 text-xs font-medium">
+                    <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest block mb-1">
                       Departs
                     </span>
-                    <p className="font-semibold text-slate-800">
+                    <p className="font-bold text-foreground">
                       {formatIST(booking.departs_at)}
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-4">
                   <div>
-                    <span className="text-slate-400 text-xs font-medium">
+                    <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest block mb-1">
                       Seat
                     </span>
-                    <p className="font-semibold text-slate-800 capitalize">
+                    <p className="font-bold text-foreground capitalize">
                       {booking.seat_number}{' '}
-                      <span className="text-xs font-medium text-slate-500">
+                      <span className="text-xs font-semibold text-zinc-400">
                         ({booking.class})
                       </span>
                     </p>
                   </div>
                   <div>
-                    <span className="text-slate-400 text-xs font-medium">
+                    <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest block mb-1">
                       Total paid
                     </span>
-                    <p className="font-bold text-slate-800">
+                    <p className="font-bold text-foreground">
                       {priceFormatter.format(booking.total_price)}
                     </p>
                   </div>
@@ -288,32 +238,27 @@ export default function BookingsList({
               {isActionable && (
                 <>
                   {confirmCancelId === booking.id ? (
-                    <div className="mt-4 pt-4 border-t border-slate-100 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <div className="bg-rose-50 border border-rose-100 rounded-xl p-4 flex flex-col gap-3">
+                    <div className="mt-4 pt-4 border-t border-zinc-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="bg-rose-50 border border-rose-100 rounded-2xl p-5 flex flex-col gap-4">
                         <div className="flex items-start gap-3">
-                          <div className="mt-0.5 text-rose-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                            </svg>
-                          </div>
                           <div>
                             <h4 className="text-sm font-bold text-rose-900">Cancel this booking?</h4>
-                            <p className="text-sm text-rose-700 mt-0.5">
-                              You are about to cancel booking <span className="font-semibold">{booking.pnr_code}</span>. This cannot be undone.
+                            <p className="text-sm font-medium text-rose-700 mt-1">
+                              You are about to cancel booking <span className="font-bold">{booking.pnr_code}</span>. This cannot be undone.
                             </p>
                             {new Date(booking.departs_at).getTime() - now < 24 * 60 * 60 * 1000 && (
-                              <p className="text-sm text-rose-700 mt-1 font-medium">
+                              <p className="text-sm text-rose-700 mt-2 font-bold">
                                 Warning: Departure is within 24 hours. Cancellation fees may apply.
                               </p>
                             )}
                             {cancelError?.id === booking.id && (
-                              <p className="text-sm text-rose-600 font-semibold mt-2">
+                              <p className="text-sm text-rose-600 font-bold mt-2">
                                 {cancelError.message}
                               </p>
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 justify-end mt-1">
+                        <div className="flex items-center gap-3 justify-end mt-2">
                           <button
                             type="button"
                             onClick={() => {
@@ -321,7 +266,7 @@ export default function BookingsList({
                               setCancelError(null)
                             }}
                             disabled={isCancelling}
-                            className="text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                            className="text-xs font-bold text-zinc-500 hover:text-foreground hover:bg-white border border-transparent hover:border-zinc-200 px-4 py-2 rounded-xl transition-all disabled:opacity-50"
                           >
                             Keep booking
                           </button>
@@ -329,26 +274,19 @@ export default function BookingsList({
                             type="button"
                             onClick={() => handleConfirmCancel(booking)}
                             disabled={isCancelling}
-                            className="text-sm font-semibold text-white bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-lg transition shadow-sm shadow-rose-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 px-4 py-2 rounded-xl transition-all shadow-md shadow-rose-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                           >
-                            {isCancelling ? (
-                              <>
-                                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                Cancelling...
-                              </>
-                            ) : (
-                              'Yes, cancel'
-                            )}
+                            {isCancelling ? 'Cancelling...' : 'Yes, cancel'}
                           </button>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+                    <div className="flex items-center gap-2 pt-4 mt-2 border-t border-zinc-100">
                       <button
                         type="button"
                         onClick={() => setRescheduleBooking(booking)}
-                        className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 transition py-1.5 px-3 rounded-lg hover:bg-indigo-50"
+                        className="text-[10px] font-bold uppercase tracking-wider text-foreground hover:opacity-70 transition-all py-2 px-4 rounded-xl hover:bg-zinc-50 border border-transparent hover:border-zinc-200"
                       >
                         Reschedule
                       </button>
@@ -359,7 +297,7 @@ export default function BookingsList({
                           setCancelError(null)
                         }}
                         disabled={isCancelling}
-                        className="text-sm font-semibold text-rose-600 hover:text-rose-500 disabled:text-rose-300 transition py-1.5 px-3 rounded-lg hover:bg-rose-50 disabled:cursor-not-allowed"
+                        className="text-[10px] font-bold uppercase tracking-wider text-rose-500 hover:text-rose-600 transition-all py-2 px-4 rounded-xl hover:bg-rose-50 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-rose-100"
                       >
                         Cancel
                       </button>
@@ -372,7 +310,6 @@ export default function BookingsList({
         })}
       </div>
 
-      {/* Reschedule modal */}
       {rescheduleBooking && (
         <RescheduleModal
           booking={rescheduleBooking}

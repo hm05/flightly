@@ -2,6 +2,8 @@
 
 import { useFlightStore, type Flight } from '@/lib/stores/flightStore'
 import FlightCard from '@/components/FlightCard'
+import { motion } from 'framer-motion'
+import { WarningCircle } from '@phosphor-icons/react'
 
 type FlightListProps = {
   flights: Flight[]
@@ -13,26 +15,12 @@ export default function FlightList({ flights, passengers }: FlightListProps) {
 
   if (flights.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-16 h-16 text-slate-300"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
-          />
-        </svg>
-        <h2 className="text-xl font-bold text-slate-700">No flights found</h2>
-        <p className="text-slate-500 text-sm">
-          Try a different date or route.
-        </p>
+      <div className="flex flex-col items-center justify-center py-20 gap-4 text-center bg-white rounded-3xl border border-zinc-200/50 mt-8 diffusion-shadow">
+        <WarningCircle size={48} weight="duotone" className="text-zinc-300" />
+        <div>
+          <h2 className="text-xl font-bold text-foreground">No flights found</h2>
+          <p className="text-zinc-500 font-medium">Try a different date or route.</p>
+        </div>
       </div>
     )
   }
@@ -40,24 +28,33 @@ export default function FlightList({ flights, passengers }: FlightListProps) {
   const origin = searchQuery?.origin
   const destination = searchQuery?.destination
 
+  const containerVariants: import('framer-motion').Variants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 },
+    },
+  }
+
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-6 mt-8">
       {/* Results summary */}
-      <p className="text-sm font-medium text-slate-500">
-        <span className="text-slate-800 font-semibold">{flights.length}</span>{' '}
-        flight{flights.length !== 1 ? 's' : ''} found
-        {origin && destination ? (
-          <>
-            {' · '}
-            <span className="text-slate-800 font-semibold">{origin}</span>
-            {' → '}
-            <span className="text-slate-800 font-semibold">{destination}</span>
-          </>
-        ) : null}
-      </p>
+      <div className="flex items-center gap-2">
+         <div className="h-px bg-zinc-200 flex-1" />
+         <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400 px-4">
+           <span className="text-foreground">{flights.length}</span> flight{flights.length !== 1 ? 's' : ''} found
+           {origin && destination && ` · ${origin} → ${destination}`}
+         </p>
+         <div className="h-px bg-zinc-200 flex-1" />
+      </div>
 
       {/* Flight cards */}
-      <div className="flex flex-col gap-4">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="flex flex-col gap-4"
+      >
         {flights.map((flight) => (
           <FlightCard
             key={flight.id}
@@ -65,7 +62,7 @@ export default function FlightList({ flights, passengers }: FlightListProps) {
             passengers={passengers}
           />
         ))}
-      </div>
+      </motion.div>
     </section>
   )
 }
