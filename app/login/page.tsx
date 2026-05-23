@@ -34,7 +34,8 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/search')
+    // Use a hard redirect so the server fully re-renders the layout with the new auth cookie
+    window.location.href = '/search'
   }
 
   return (
