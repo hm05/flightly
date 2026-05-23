@@ -1,99 +1,164 @@
-# Flightly: Flight Booking Web App
+# Flightly
 
-A modern, multi-step flight booking application built with Next.js App Router, featuring real-time seat selection and a robust PostgreSQL database with Supabase.
+## Project Summary
+
+Flightly is a responsive flight management web app (PWA) built as an internship technical assignment. Passengers can search flights, select seats on a visual seat map, book with passenger details, reschedule, and cancel bookings.
+
+## Tech Stack
+
+| Layer             | Technology                                      |
+|-------------------|-------------------------------------------------|
+| Framework         | Next.js 16.2 (App Router)                       |
+| Language          | TypeScript (strict, no `any`)                   |
+| UI                | React 19, Tailwind CSS v4                       |
+| Database          | Supabase (PostgreSQL)                           |
+| Auth              | Supabase Auth (email/password)                  |
+| Realtime          | Supabase Realtime (seats table)                 |
+| State management  | Zustand 5 with persist middleware               |
+| PWA               | @ducanh2912/next-pwa                            |
+| Error monitoring  | Sentry (@sentry/nextjs)                         |
+| Deployment        | Vercel                                          |
 
 ## Features
 
 - Flight search by origin, destination, date, and passenger count
-- Visual seat map with real-time availability via Supabase Realtime
-- Multi-step booking flow: search → seat selection → passenger details → confirmation with PNR
-- My Bookings page: view all bookings with status badges (confirmed / rescheduled / cancelled)
-- Reschedule: pick an alternative flight on the same route via atomic RPC, automatically charging the price difference
-- Cancel: inline confirmation dialog natively in the UI, blocked within 2 hours of departure enforced at the database level
-- Authentication: email/password sign-up and login securely managed by Supabase Auth
+- Visual aircraft seat map with economy / business / first class zones
+- Live seat availability via Supabase Realtime — seats booked by other users update without a page refresh
+- Multi-step booking flow: search → seat selection → passenger details → confirmation with PNR code
+- My Bookings page with status badges (confirmed / rescheduled / cancelled)
+- Reschedule: pick an alternative flight on the same route; price difference charged atomically
+- Cancel: inline confirmation dialog, blocked within 2 hours of departure enforced at DB level
+- Installable PWA with offline fallback and install prompt banner
 
-## Tech Stack
+## Route Map
 
-| Category | Technology |
-|---|---|
-| **Frontend & API** | Next.js 16 (App Router), React 19, TypeScript |
-| **Database & Auth** | Supabase (PostgreSQL, Supabase Auth, Realtime) |
-| **State Management** | Zustand 5 (with persist middleware) |
-| **Styling** | Tailwind CSS v4 |
-| **Error Monitoring** | Sentry |
+| Route                    | Description                            |
+|--------------------------|----------------------------------------|
+| /                        | Landing page                           |
+| /login                   | Email/password sign in                 |
+| /signup                  | New account registration               |
+| /search                  | Flight search results                  |
+| /book/seats              | Interactive seat map                   |
+| /book/passengers         | Passenger details form                 |
+| /book/confirmation       | Booking confirmation with PNR          |
+| /bookings                | My Bookings (auth-protected)           |
+| /offline                 | PWA offline fallback page              |
 
 ## Local Setup
 
-### 1. Clone & Install Dependencies
+1. Clone the repo and cd into it:
 ```bash
 git clone https://github.com/hm05/flightly.git
 cd flightly
+```
+
+2. Install dependencies:
+```bash
 npm install
 ```
 
-### 2. Environment Variables
-Create a `.env.local` file in the root directory by copying the `.env.example` template:
+3. Copy environment variables:
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
+Fill in the values in `.env` (see Environment Variables section).
 
-Fill in the required keys:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-SUPABASE_PASSWORD=your_db_password
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-
-NEXT_PUBLIC_SENTRY_DSN=your_sentry_dsn
-SENTRY_AUTH_TOKEN=your_sentry_auth_token
+4. Generate PWA icons:
+```bash
+npm run generate-icons
 ```
+Generates PWA icons into `public/icons/`. (Requires sharp: `npm install --save-dev sharp` if not already installed).
 
-### 3. Supabase Project Configuration
-In your Supabase dashboard, ensure the following are configured:
-- **Authentication**: Enable Email/Password authentication.
-- **Realtime**: Enable Realtime broadcasts on the `seats` table so seat maps update instantly when someone else books a seat.
-
-### 4. Database Migrations
-Open the Supabase SQL Editor and run the following migration scripts from the `/supabase/migrations/` folder in this exact order:
-1. `001_schema.sql` (Creates tables: flights, seats, bookings, passengers, reschedules)  
-   *> **Note:** If the Supabase SQL Editor displays a "Potential issue detected" warning regarding Row Level Security, select **"Run without RLS"**. RLS is explicitly handled in the subsequent migration.*
-2. `002_rls.sql` (Enables Row Level Security ensuring users only access their own data)
-3. `003_functions.sql` (Creates RPCs: `reserve_seat`, `cancel_booking`, `reschedule_booking`)
-4. `004_seed.sql` (Populates 8 flights across 4 routes and generates seats)
-
-*(If you ever need to reset the database, run `000_reset.sql` first, then re-run 001 through 004).*
-
-### 5. Start Development Server
+5. Start the development server:
 ```bash
 npm run dev
 ```
-Open `http://localhost:3000` to view the application.
+The app runs at http://localhost:3000
+
+Note: PWA service worker is disabled in development (NODE_ENV=development). To test PWA:
+```bash
+npm run build && npm run start
+```
+Then open Chrome DevTools → Application → Manifest / Service Workers.
+
+## Supabase Project Configuration
+
+1. Create a new Supabase project at supabase.com
+2. In Authentication → Providers, ensure Email provider is enabled
+3. In Realtime → Tables, enable Realtime on the `public.seats` table
+4. Open the Supabase SQL editor and run the migration files in this exact order:
+   - `supabase/migrations/000_reset.sql` ← drops and recreates schema (skip on a fresh project)
+   - `supabase/migrations/001_schema.sql` ← creates all 5 tables
+   - `supabase/migrations/002_rls.sql` ← enables RLS and creates all policies
+   - `supabase/migrations/003_functions.sql` ← creates reserve_seat, cancel_booking, reschedule_booking RPCs
+   - `supabase/migrations/004_seed.sql` ← seeds 8 flights across 4 routes with full seat maps
+5. Copy Project URL and anon key from Project Settings → API into `.env`
+6. Copy the service role key from the same page into `SUPABASE_SERVICE_ROLE_KEY` (used server-side only, never exposed to the client)
+7. Create a test user manually in Authentication → Users (or via the signup page) and note the credentials below
+
+## Environment Variables
+
+| Variable                                  | Where to find it                                      | Exposed to client? |
+|-------------------------------------------|-------------------------------------------------------|--------------------|
+| NEXT_PUBLIC_SUPABASE_URL                  | Supabase → Project Settings → API → Project URL       | Yes                |
+| NEXT_PUBLIC_SUPABASE_ANON_KEY             | Supabase → Project Settings → API → anon/public key   | Yes                |
+| SUPABASE_PASSWORD                         | Set when creating the Supabase project                | No                 |
+| SUPABASE_SERVICE_ROLE_KEY                 | Supabase → Project Settings → API → service_role key  | No — server only   |
+| NEXT_PUBLIC_SENTRY_DSN                    | Sentry → Project → Settings → Client Keys             | Yes                |
+| SENTRY_AUTH_TOKEN                         | Sentry → Settings → Auth Tokens                       | No                 |
+
+## Database Schema
+
+- flights: id, flight_no, origin, destination, departs_at, arrives_at, aircraft_type, status, base_price
+- seats: id, flight_id, seat_number, class (economy/business/first), is_available, extra_fee
+- bookings: id, user_id, flight_id, seat_id, status (confirmed/rescheduled/cancelled), booked_at, total_price, pnr_code
+- passengers: id, booking_id, full_name, passport_no, nationality, dob
+- reschedules: id, booking_id, old_flight_id, new_flight_id, requested_at, fee_charged
+
+### RPCs
+
+- `reserve_seat` — atomically locks a seat and creates the booking + passenger record in one transaction; price computed server-side, identity from auth.uid()
+- `cancel_booking` — cancels a booking and releases the seat; rejects calls within 2 hours of departure at DB level
+- `reschedule_booking` — moves a booking to a new flight on the same route; validates route match, enforces 2-hour cutoff on original flight, charges price difference, inserts audit record; all in one transaction
 
 ## Zustand Store Structure
 
-The app's client-side state is handled by Zustand across two main stores:
+### useFlightStore (lib/stores/flightStore.ts)
+Manages the active booking journey.
+- State fields: `searchQuery`, `selectedFlight`, `selectedSeat`, `currentStep`, `passengerForm` (full_name, passport_no, nationality, dob), `confirmedBookingId`, `confirmedPnr`
+- Persisted to localStorage (via partialize): `searchQuery` and `currentStep` only — so a user can close the tab mid-search and resume where they left off.
+- Intentionally excluded from localStorage: `selectedFlight`, `selectedSeat`, `passengerForm` (contains `passport_no` — a sensitive travel document number that must never be written to localStorage), `confirmedBookingId`, `confirmedPnr`.
+- Key behaviours: `setSelectedSeat` is optimistic — it marks the seat selected in the store before the Supabase write confirms; if `reserve_seat` returns `SEAT_TAKEN`, the caller invokes `clearSeatSelection()` to roll back. `resetBooking()` is called on confirmation page load and on logout.
 
-### `useFlightStore` (`lib/stores/flightStore.ts`)
-Manages the multi-step booking flow.
-- **State**: `searchQuery`, `selectedFlight`, `selectedSeat`, `currentStep`, `passengerForm`, `confirmedBookingId`, `confirmedPnr`
-- **Persistence**: Using Zustand's persist middleware with `partialize`, **only** `searchQuery` and `currentStep` are saved to `localStorage`. 
-  - *Security & Privacy Note*: `passengerForm` (which contains sensitive data like `passport_no`), `selectedFlight`, `selectedSeat`, `confirmedBookingId`, and `confirmedPnr` are intentionally excluded from persistence to prevent storing sensitive travel documents in local browser storage.
-- **Key Actions**: `setSelectedSeat` (optimistic UI update — marks seat selected before Supabase write confirms), `clearSeatSelection` (rollback on `SEAT_TAKEN` error), and `resetBooking` (called on confirmation and user logout).
-
-### `useUserStore` (`lib/stores/userStore.ts`)
-Manages user sessions and local caching for bookings.
-- **State**: `sessionToken`, `cachedBookings`
-- **Persistence**: Using persist middleware with `partialize`, **only** `sessionToken` is saved to `localStorage`. `cachedBookings` are always freshly fetched from Supabase on mount.
-- **Key Actions**: `setCachedBookings`, `addCachedBooking`, `updateBookingStatus`, and `clearUser`.
+### useUserStore (lib/stores/userStore.ts)
+Manages auth session and cached booking list.
+- State fields: `sessionToken`, `cachedBookings`
+- Persisted to localStorage (via partialize): `sessionToken` only.
+- Intentionally excluded: `cachedBookings` — always re-fetched from Supabase on mount so the UI never shows stale data. `cachedBookings` is held in memory only to support the PWA offline page, which reads from the store after the last successful fetch.
+- Key behaviours: `updateBookingStatus()` mutates a single booking's status in memory after a cancel or reschedule succeeds, avoiding a full page reload. `clearUser()` is called on logout and resets both fields.
 
 ## Test Account
 
-Since the database seed (`004_seed.sql`) only populates flights and seats, you must manually create a test user via the Supabase Auth dashboard or sign up via the app UI.
+The seed script (`004_seed.sql`) populates flights and seats but does not create a user — Supabase Auth manages users separately.
+Create a test account via the `/signup` page or the Supabase Auth dashboard, then fill in the credentials here before submitting:
 
-- **Email**: test@flightly.com
-- **Password**: Test@123
+| Field    | Value                  |
+|----------|------------------------|
+| Email    | test@flightly.com      |
+| Password | Test@123              |
+
+## PWA
+
+- Configured with `@ducanh2912/next-pwa`
+- `manifest.json` at `public/manifest.json` (name, short_name, theme_color: #4f46e5, display: standalone)
+- Icons at `public/icons/icon-192x192.png` and `public/icons/icon-512x512.png` — generate with `npm run generate-icons`
+- Cache strategy: StaleWhileRevalidate for Supabase API calls, CacheFirst for static assets and fonts
+- Offline fallback at `/offline` — displays last-cached bookings from `useUserStore`
+- Install prompt banner shown to first-time mobile visitors
+- Service worker disabled in development; test with a production build (`npm run build && npm run start`)
+- Lighthouse PWA score: [INSERT SCREENSHOT]
+*(Note: run Lighthouse in incognito on the production URL)*
 
 ## Live Demo
 
-Live URL - [https://flightly-hm05.vercel.app](https://flightly-hm05.vercel.app)
+Deployed on Vercel: [https://flightly-hm05.vercel.app/](https://flightly-hm05.vercel.app/)
