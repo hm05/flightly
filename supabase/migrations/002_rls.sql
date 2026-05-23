@@ -95,3 +95,7 @@ create policy "reschedules: owner can insert"
       select id from public.bookings where user_id = auth.uid()
     )
   );
+
+-- Enable Realtime on seats table so live seat availability
+-- updates are streamed to connected clients via WebSocket.
+alter publication supabase_realtime add table public.seats;

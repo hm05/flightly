@@ -85,16 +85,15 @@ Then open Chrome DevTools → Application → Manifest / Service Workers.
 
 1. Create a new Supabase project at supabase.com
 2. In Authentication → Providers, ensure Email provider is enabled
-3. In Realtime → Tables, enable Realtime on the `public.seats` table
-4. Open the Supabase SQL editor and run the migration files in this exact order:
+3. Open the Supabase SQL editor and run the migration files in this exact order:
    - `supabase/migrations/000_reset.sql` ← drops and recreates schema (skip on a fresh project)
    - `supabase/migrations/001_schema.sql` ← creates all 5 tables
    - `supabase/migrations/002_rls.sql` ← enables RLS and creates all policies
    - `supabase/migrations/003_functions.sql` ← creates reserve_seat, cancel_booking, reschedule_booking RPCs
    - `supabase/migrations/004_seed.sql` ← seeds 8 flights across 4 routes with full seat maps
-5. Copy Project URL and anon key from Project Settings → API into `.env`
-6. Copy the service role key from the same page into `SUPABASE_SERVICE_ROLE_KEY` (used server-side only, never exposed to the client)
-7. Create a test user manually in Authentication → Users (or via the signup page) and note the credentials below
+4. Copy Project URL and anon key from Project Settings → API into `.env`
+5. Copy the service role key from the same page into `SUPABASE_SERVICE_ROLE_KEY` (used server-side only, never exposed to the client)
+6. Create a test user manually in Authentication → Users (or via the signup page) and note the credentials below
 
 ## Environment Variables
 
