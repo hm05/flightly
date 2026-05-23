@@ -41,7 +41,7 @@ function formatIST(isoString: string): string {
 type RescheduleModalProps = {
   booking: BookingWithDetails
   onClose(): void
-  onRescheduled(newFlightNo: string): void
+  onRescheduled(newFlight: Flight): void
 }
 
 // ---------------------------------------------------------------------------
@@ -147,7 +147,7 @@ function ModalContent({
     void feeCharged
 
     setSubmitting(false)
-    onRescheduled(selectedFlight.flight_no)
+    onRescheduled(selectedFlight)
   }
 
   // -------------------------------------------------------------------------

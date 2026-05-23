@@ -7,6 +7,7 @@ import { reportError } from '@/lib/errors'
 import { useUserStore } from '@/lib/stores/userStore'
 import { type BookingWithDetails } from '@/app/bookings/page'
 import dynamic from 'next/dynamic'
+import { type Flight } from '@/lib/stores/flightStore'
 
 // dynamic() must be called at module level — it returns a component (an expression,
 // a value), so the result is stored in a variable and used in JSX like any import.
@@ -146,11 +147,19 @@ export default function BookingsList({
   // Reschedule success callback
   // -------------------------------------------------------------------------
 
-  function handleRescheduled(bookingId: string, newFlightNo: string) {
+  function handleRescheduled(bookingId: string, newFlight: Flight) {
     setBookings((prev) =>
       prev.map((b) =>
         b.id === bookingId
-          ? { ...b, status: 'rescheduled', flight_no: newFlightNo }
+          ? { 
+              ...b, 
+              status: 'rescheduled', 
+              flight_no: newFlight.flight_no,
+              flight_id: newFlight.id,
+              departs_at: newFlight.departs_at,
+              arrives_at: newFlight.arrives_at,
+              base_price: newFlight.base_price
+            }
           : b,
       ),
     )
@@ -368,8 +377,8 @@ export default function BookingsList({
         <RescheduleModal
           booking={rescheduleBooking}
           onClose={() => setRescheduleBooking(null)}
-          onRescheduled={(newFlightNo: string) =>
-            handleRescheduled(rescheduleBooking.id, newFlightNo)
+          onRescheduled={(newFlight: Flight) =>
+            handleRescheduled(rescheduleBooking.id, newFlight)
           }
         />
       )}
