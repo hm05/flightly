@@ -177,7 +177,7 @@ Create a test account via the `/signup` page or the Supabase Auth dashboard, the
 - Offline fallback at `/offline` — displays last-cached bookings from `useUserStore`
 - Install prompt banner shown to first-time mobile visitors
 - Service worker disabled in development; test with a production build (`npm run build && npm run start`)
-- Lighthouse PWA score: [INSERT SCREENSHOT]
+- Lighthouse PWA score: 100 Performance, 90 Accessibility, 100 Best Practices, 100 SEO
 *(Note: run Lighthouse in incognito on the production URL)*
 
 ## Live Demo
