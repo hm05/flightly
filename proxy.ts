@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 
 // Middleware runs in the Edge runtime — next/headers is NOT available here.
 // Cookies must be read from request.cookies and written to the response directly.
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Step 1: Create a base response that passes the request through.
   // Supabase needs to be able to mutate the response cookies so the
   // refreshed session token reaches the browser.
