@@ -137,6 +137,28 @@ Manages auth session and cached booking list.
 - Intentionally excluded: `cachedBookings` — always re-fetched from Supabase on mount so the UI never shows stale data. `cachedBookings` is held in memory only to support the PWA offline page, which reads from the store after the last successful fetch.
 - Key behaviours: `updateBookingStatus()` mutates a single booking's status in memory after a cancel or reschedule succeeds, avoiding a full page reload. `clearUser()` is called on logout and resets both fields.
 
+## Architecture Decisions
+
+**Server Components vs Client Components**
+Search (`search/page.tsx`) and bookings (`bookings/page.tsx`) are Server Components. They query Supabase directly on the server before sending HTML, so the user sees data immediately with no client-side loading spinner. Only components with interactivity (seat map, forms, modals) are Client Components.
+
+**Why RPC for seat reservation**
+A plain `INSERT` from the frontend has a race condition — two users checking `is_available=true` simultaneously both succeed. The `reserve_seat` RPC uses `SELECT...FOR UPDATE` to acquire a row-level lock before checking availability, so only one transaction can proceed. This is enforced at the PostgreSQL level, not the application level.
+
+**Why 2-hour cancellation rule is at DB level**
+Frontend validation can be bypassed — anyone can call the Supabase REST API directly with curl or Postman. The `cancel_booking` and `reschedule_booking` RPCs check `now() > departs_at - interval '2 hours'` inside the database function, so the rule holds regardless of how the request arrives.
+
+**Why SECURITY DEFINER with auth.uid() instead of passing user_id as a parameter**
+`SECURITY DEFINER` bypasses RLS so the function can write to multiple tables atomically. But it also means the caller could pass any `user_id`. We remove `p_user_id` from all RPCs and use `auth.uid()` instead — which reads from the verified JWT, not from the request body. Price is also computed server-side inside the RPC to prevent clients from passing arbitrary amounts.
+
+## Known Trade-offs
+
+- **Offline page + cached bookings**: `cachedBookings` in `useUserStore` is intentionally not persisted to localStorage (always re-fetched from Supabase). This means the offline page shows bookings from the last in-memory session only — a page refresh while offline shows an empty list. A proper fix would persist `cachedBookings` with a short TTL or use IndexedDB.
+- **Realtime conflict alert**: When a seat is booked by another user while selected, we use `window.alert()` for simplicity. In production this should be a toast notification to avoid blocking the UI thread.
+- **Date filter edge case**: The flight search uses `departs_at < date+T23:59:59` which technically misses the last second of the day. The correct boundary is `departs_at < (date+1day)T00:00:00`.
+- **Single passenger per booking**: The schema supports one passenger per booking (enforced by `UNIQUE` constraint on `passengers.booking_id`). Multi-passenger bookings would require a separate seat selection and passenger form per traveller.
+- **No email confirmation**: The confirmation page mentions an email is on the way but no email is sent. Supabase has built-in email support via `pg_net` + Resend that could be wired up.
+
 ## Test Account
 
 The seed script (`004_seed.sql`) populates flights and seats but does not create a user — Supabase Auth manages users separately.
@@ -162,3 +184,9 @@ Create a test account via the `/signup` page or the Supabase Auth dashboard, the
 ## Live Demo
 
 Deployed on Vercel: [https://flightly-hm05.vercel.app/](https://flightly-hm05.vercel.app/)
+
+## Lighthouse Scores
+
+![Lighthouse scores: 100 Performance, 90 Accessibility, 100 Best Practices, 100 SEO](./public/lighthouse.png)
+
+> Tested on production build (`npm run build && npm run start`) in Chrome incognito, Desktop mode.
