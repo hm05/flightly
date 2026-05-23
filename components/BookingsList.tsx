@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { reportError } from '@/lib/errors'
@@ -83,22 +83,36 @@ export default function BookingsList({
 }: BookingsListProps) {
   const [bookings, setBookings] = useState<BookingWithDetails[]>(initialBookings)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null)
+  const [cancelError, setCancelError] = useState<{ id: string; message: string } | null>(null)
   const [rescheduleBooking, setRescheduleBooking] =
     useState<BookingWithDetails | null>(null)
 
+  const [now] = useState(() => Date.now())
+
   const { updateBookingStatus } = useUserStore()
+
+  // -------------------------------------------------------------------------
+  // Escape key handler for confirm panel
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && confirmCancelId) {
+        setConfirmCancelId(null)
+        setCancelError(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [confirmCancelId])
 
   // -------------------------------------------------------------------------
   // Cancel handler
   // -------------------------------------------------------------------------
 
-  async function handleCancel(booking: BookingWithDetails) {
-    const confirmed = window.confirm(
-      `Cancel booking ${booking.pnr_code}? This cannot be undone.`,
-    )
-    if (!confirmed) return
-
+  async function handleConfirmCancel(booking: BookingWithDetails) {
     setCancellingId(booking.id)
+    setCancelError(null)
     const supabase = createClient()
 
     const { error } = await supabase.rpc('cancel_booking', {
@@ -112,15 +126,16 @@ export default function BookingsList({
         ),
       )
       updateBookingStatus(booking.id, 'cancelled')
+      setConfirmCancelId(null)
     } else {
       const msg = error.message ?? ''
       if (msg.includes('TOO_LATE_TO_CANCEL')) {
-        alert('Cancellations are not allowed within 2 hours of departure.')
+        setCancelError({ id: booking.id, message: 'Cancellation is not allowed within 2 hours of departure.' })
       } else if (msg.includes('BOOKING_NOT_FOUND')) {
-        alert('This booking could not be found.')
+        setCancelError({ id: booking.id, message: 'This booking could not be found.' })
       } else {
         reportError(error, { tag: 'cancel-booking' })
-        alert('Cancellation failed. Please try again.')
+        setCancelError({ id: booking.id, message: 'Cancellation failed. Please try again.' })
       }
     }
 
@@ -262,23 +277,86 @@ export default function BookingsList({
 
               {/* Actions */}
               {isActionable && (
-                <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setRescheduleBooking(booking)}
-                    className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 transition py-1.5 px-3 rounded-lg hover:bg-indigo-50"
-                  >
-                    Reschedule
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleCancel(booking)}
-                    disabled={isCancelling}
-                    className="text-sm font-semibold text-rose-600 hover:text-rose-500 disabled:text-rose-300 transition py-1.5 px-3 rounded-lg hover:bg-rose-50 disabled:cursor-not-allowed"
-                  >
-                    {isCancelling ? 'Cancelling...' : 'Cancel'}
-                  </button>
-                </div>
+                <>
+                  {confirmCancelId === booking.id ? (
+                    <div className="mt-4 pt-4 border-t border-slate-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="bg-rose-50 border border-rose-100 rounded-xl p-4 flex flex-col gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 text-rose-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-rose-900">Cancel this booking?</h4>
+                            <p className="text-sm text-rose-700 mt-0.5">
+                              You are about to cancel booking <span className="font-semibold">{booking.pnr_code}</span>. This cannot be undone.
+                            </p>
+                            {new Date(booking.departs_at).getTime() - now < 24 * 60 * 60 * 1000 && (
+                              <p className="text-sm text-rose-700 mt-1 font-medium">
+                                Warning: Departure is within 24 hours. Cancellation fees may apply.
+                              </p>
+                            )}
+                            {cancelError?.id === booking.id && (
+                              <p className="text-sm text-rose-600 font-semibold mt-2">
+                                {cancelError.message}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 justify-end mt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfirmCancelId(null)
+                              setCancelError(null)
+                            }}
+                            disabled={isCancelling}
+                            className="text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                          >
+                            Keep booking
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleConfirmCancel(booking)}
+                            disabled={isCancelling}
+                            className="text-sm font-semibold text-white bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-lg transition shadow-sm shadow-rose-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {isCancelling ? (
+                              <>
+                                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                Cancelling...
+                              </>
+                            ) : (
+                              'Yes, cancel'
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setRescheduleBooking(booking)}
+                        className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 transition py-1.5 px-3 rounded-lg hover:bg-indigo-50"
+                      >
+                        Reschedule
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmCancelId(booking.id)
+                          setCancelError(null)
+                        }}
+                        disabled={isCancelling}
+                        className="text-sm font-semibold text-rose-600 hover:text-rose-500 disabled:text-rose-300 transition py-1.5 px-3 rounded-lg hover:bg-rose-50 disabled:cursor-not-allowed"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </article>
           )
