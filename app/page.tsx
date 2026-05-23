@@ -42,7 +42,7 @@ export default function LandingPage() {
           <div className="flex flex-col items-start text-left max-w-2xl">
             <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-3 py-1 rounded-full liquid-glass border-zinc-200/50 mb-6 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-              <span className="text-xs font-semibold text-zinc-600 tracking-wide uppercase">Flightly 2.0 is live</span>
+              <span className="text-xs font-semibold text-zinc-600 tracking-wide uppercase">Flightly 1.0 is live</span>
             </motion.div>
             
             <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-extrabold tracking-tighter text-foreground mb-6 leading-[1.1]">
